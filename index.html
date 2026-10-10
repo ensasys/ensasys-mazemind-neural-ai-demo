@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MazeMind — Neural Maze Lab by Ensasys @ Ethan Htoon</title>
+<style>
+  :root{color-scheme:dark;--bg:#080c13;--panel:#101722;--panel2:#0c131d;--line:#243246;--text:#e7eef8;--muted:#8da0b8;--cyan:#55e6d0;--blue:#6ea8ff;--purple:#b39aff;--green:#82edb3;--red:#ff7188;--amber:#ffd184}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(ellipse at 20% -10%,#152b3c 0,transparent 38%),radial-gradient(ellipse at 100% 10%,#211c3a 0,transparent 32%),var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+  button,input{font:inherit}
+  .shell{max-width:1500px;margin:0 auto;padding:26px clamp(14px,3vw,38px) 34px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:22px}
+  .brand{display:flex;align-items:center;gap:13px;min-width:0}
+  .logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#53e7d0,#6ea8ff);display:grid;place-items:center;box-shadow:0 0 34px #55e6d02a;color:#071018;font-weight:900;font-size:22px}
+  .eyebrow{color:var(--cyan);text-transform:uppercase;letter-spacing:.16em;font-weight:750;font-size:10px}
+  h1{font-size:clamp(21px,3vw,31px);line-height:1.08;letter-spacing:-.045em;margin:3px 0 0}
+  .header-note{color:var(--muted);font-size:12px;text-align:right;max-width:300px}
+  .header-note span{color:var(--green)}
+  .metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
+  .metric{border:1px solid var(--line);background:linear-gradient(135deg,#111b28,#0e151f);border-radius:14px;padding:13px 15px;min-width:0}
+  .metric-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:5px}
+  .metric-value{font-size:clamp(19px,2vw,25px);line-height:1.15;font-weight:750;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .metric-sub{color:var(--muted);font-size:10px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .main-grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(410px,1.08fr);gap:14px;align-items:stretch}
+  .panel{background:linear-gradient(160deg,#111a27f5,#0c131df7 75%);border:1px solid var(--line);border-radius:18px;overflow:hidden;min-width:0;box-shadow:0 18px 50px #00000020}
+  .panel-head{padding:17px 19px 13px;border-bottom:1px solid #202c3a;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .panel-title{font-size:14px;font-weight:750;letter-spacing:-.015em}
+  .panel-subtitle{color:var(--muted);font-size:11px;margin-top:3px}
+  .tag{font-size:10px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;border:1px solid #2c4851;color:var(--cyan);background:#10272a;border-radius:999px;padding:5px 8px;white-space:nowrap}
+  .canvas-wrap{padding:14px 15px 5px}
+  canvas{display:block;width:100%;height:auto}
+  #mazeCanvas{border:1px solid #263547;border-radius:10px;background:#09111b}
+  #networkCanvas{width:100%;border-radius:10px;background:linear-gradient(180deg,#0a111b,#0b121d);border:1px solid #1f2b3b}
+  .maze-legend{display:flex;flex-wrap:wrap;gap:14px;padding:8px 18px 15px;color:var(--muted);font-size:10px}
+  .legend-item{display:inline-flex;align-items:center;gap:6px}
+  .dotkey{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .controls{border-top:1px solid #202c3a;padding:14px 16px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .btn{border:1px solid #304156;color:var(--text);background:#182333;border-radius:10px;padding:9px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:transform .15s,border-color .15s,background .15s;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{border-color:#5b829c;transform:translateY(-1px)}
+  .btn.primary{color:#06131a;background:linear-gradient(135deg,#55e6d0,#7fd8ff);border-color:transparent}
+  .btn:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+  .control-spacer{flex:1}
+  .speed{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:10px;min-width:145px}
+  .speed input{width:90px;accent-color:var(--cyan)}
+  .speed strong{color:var(--text);min-width:20px;text-align:right}
+  .network-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px 16px 14px}
+  .mini-stat{background:#0b121b;border:1px solid #1e2b3b;border-radius:10px;padding:9px 10px;min-width:0}
+  .mini-label{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.11em}
+  .mini-value{font-weight:750;font-variant-numeric:tabular-nums;margin-top:2px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .q-section{border-top:1px solid #202c3a;padding:14px 17px 16px}
+  .section-heading{font-size:11px;text-transform:uppercase;letter-spacing:.11em;color:#b3c3d8;font-weight:750;display:flex;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .bars{display:grid;gap:9px}
+  .q-row{display:grid;grid-template-columns:56px minmax(30px,1fr) 52px;gap:9px;align-items:center;font-size:10px}
+  .q-name{color:var(--muted);display:flex;align-items:center;gap:5px}
+  .q-name.active{color:var(--cyan);font-weight:750}
+  .q-track{height:7px;background:#1c2837;overflow:hidden;border-radius:99px;position:relative}
+  .q-fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#4988ff,#55e6d0);transition:width .12s}
+  .q-value{text-align:right;color:#c5d6e8;font-variant-numeric:tabular-nums}
+  .bottom-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin-top:14px}
+  .info-panel{background:#0f1722;border:1px solid var(--line);border-radius:15px;padding:16px 18px;min-width:0}
+  .info-panel h2{font-size:12px;margin:0 0 9px;letter-spacing:.02em}
+  .info-panel p{margin:0;color:var(--muted);font-size:11px;line-height:1.65}
+  .pipeline{display:flex;align-items:stretch;gap:7px;margin-top:12px}
+  .pipe-step{flex:1;border:1px solid #28384a;background:#0b131e;border-radius:9px;padding:9px 7px;text-align:center;min-width:0}
+  .pipe-step b{display:block;color:var(--cyan);font-size:11px;margin-bottom:3px}
+  .pipe-step span{display:block;color:var(--muted);font-size:9px;line-height:1.35}
+  .pipe-arrow{align-self:center;color:#63778e;font-size:13px}
+  .reward-line{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+  .reward-chip{border:1px solid #2a384a;border-radius:8px;padding:5px 8px;color:var(--muted);font-size:10px}
+  .reward-chip b{color:#dce8f5}
+  .footer{color:#687b91;font-size:10px;text-align:center;padding-top:18px}
+  @media(max-width:1000px){.main-grid{grid-template-columns:1fr}.bottom-grid{grid-template-columns:1fr}.header-note{max-width:220px}.metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media(max-width:560px){.shell{padding:15px 10px 22px}header{align-items:flex-start}.header-note{display:none}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.metric{padding:11px}.metric:last-child{grid-column:span 2}.panel-head{padding:14px}.canvas-wrap{padding:10px 9px 3px}.controls{padding:11px;gap:6px}.btn{padding:8px 9px}.control-spacer{display:none}.speed{width:100%;order:5}.speed input{flex:1}.network-stats{padding:10px;gap:6px}.mini-stat{padding:8px}.q-section{padding:13px}.pipeline{gap:4px}.pipe-step{padding:8px 4px}.pipe-arrow{font-size:10px}}
+
+  /* Game Boy-inspired pixel skin: visual overrides only; app logic is unchanged. */
+  :root{
+    color-scheme:light;
+    --bg:#9bbc0f;--panel:#8bac0f;--panel2:#9bbc0f;--line:#0f380f;
+    --text:#0f380f;--muted:#306230;--cyan:#0f380f;--blue:#306230;
+    --purple:#306230;--green:#0f380f;--red:#306230;--amber:#306230;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:#9bbc0f;color:#0f380f;
+    font-family:"Courier New",ui-monospace,monospace;
+    letter-spacing:.015em;
+    text-shadow:none;
+  }
+  button,input{font-family:inherit}
+  .shell{image-rendering:pixelated}
+  .logo{
+    border-radius:0;background:#0f380f;color:#9bbc0f;
+    border:3px solid #0f380f;box-shadow:4px 4px 0 #306230;
+    font-family:"Courier New",monospace;
+  }
+  .eyebrow,.metric-label,.tag,.mini-label,.section-heading,.footer{
+    font-family:"Courier New",monospace;letter-spacing:.09em;
+  }
+  h1{letter-spacing:-.035em}
+  .metric{
+    border:2px solid #0f380f;border-radius:0;
+    background:#8bac0f;box-shadow:3px 3px 0 #306230;
+  }
+  .panel{
+    background:#8bac0f;border:3px solid #0f380f;border-radius:0;
+    box-shadow:4px 4px 0 #306230;
+  }
+  .panel-head,.controls,.q-section{border-color:#306230}
+  .panel-head{border-bottom-width:2px}
+  .tag{
+    border:2px solid #0f380f;border-radius:0;background:#9bbc0f;
+    color:#0f380f;padding:4px 7px;
+  }
+  .canvas-wrap{padding:14px 15px 5px}
+  canvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges}
+  #mazeCanvas,#networkCanvas{border:3px solid #0f380f;border-radius:0;background:#9bbc0f}
+  .dotkey{border-radius:0}
+  .btn{
+    border:2px solid #0f380f;border-radius:0;background:#8bac0f;color:#0f380f;
+    box-shadow:2px 2px 0 #306230;transition:none;
+  }
+  .btn:hover{border-color:#0f380f;transform:none;background:#9bbc0f;box-shadow:1px 1px 0 #306230}
+  .btn.primary{background:#0f380f;color:#9bbc0f;border:2px solid #0f380f;box-shadow:2px 2px 0 #306230}
+  .btn.primary:hover{background:#306230;color:#9bbc0f}
+  .btn:focus-visible,input:focus-visible{outline:3px dashed #0f380f;outline-offset:3px}
+  .speed input{accent-color:#0f380f}
+  .mini-stat{background:#9bbc0f;border:2px solid #306230;border-radius:0}
+  .q-track{background:#306230;border-radius:0}
+  .q-fill{border-radius:0;background:#0f380f;transition:none}
+  .q-name.active,.q-value{color:#0f380f}
+  .info-panel{background:#8bac0f;border:2px solid #0f380f;border-radius:0;box-shadow:3px 3px 0 #306230}
+  .pipe-step{background:#9bbc0f;border:2px solid #306230;border-radius:0}
+  .pipe-step b{color:#0f380f}
+  .pipe-arrow{color:#306230}
+  .reward-chip{border:2px solid #306230;border-radius:0;color:#306230}
+  .reward-chip b{color:#0f380f}
+  .footer{color:#306230}
+  ::selection{background:#0f380f;color:#9bbc0f}
+
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand">
+      <div class="logo">⌁</div>
+      <div><div class="eyebrow">Interactive reinforcement learning lab</div><h1>MazeMind <span style="color:var(--cyan)">/</span> Neural Escape</h1>  by Ensasys @ Ethan Htoon</div>
+    </div>
+    <div class="header-note"><span>● Live training</span><br>Watch a neural agent learn from its own moves.</div>
+  </header>
+
+  <section class="metrics" aria-label="Training metrics">
+    <div class="metric"><div class="metric-label">Episodes</div><div class="metric-value" id="episodes">0</div><div class="metric-sub">completed attempts</div></div>
+    <div class="metric"><div class="metric-label">Success rate</div><div class="metric-value" id="successRate">—</div><div class="metric-sub">last 50 episodes</div></div>
+    <div class="metric"><div class="metric-label">Best escape</div><div class="metric-value" id="bestSteps">—</div><div class="metric-sub">fewest moves to goal</div></div>
+    <div class="metric"><div class="metric-label">Exploration ε</div><div class="metric-value" id="epsilon">100%</div><div class="metric-sub">chance of random action</div></div>
+    <div class="metric"><div class="metric-label">Training loss</div><div class="metric-value" id="loss">—</div><div class="metric-sub">TD error · moving average</div></div>
+  </section>
+
+  <main class="main-grid">
+    <section class="panel" aria-labelledby="mazeTitle">
+      <div class="panel-head"><div><div class="panel-title" id="mazeTitle">01 / The environment</div><div class="panel-subtitle">The agent only sees its coordinates, goal direction and nearby wall sensors.</div></div><span class="tag" id="runTag">TRAINING LIVE</span></div>
+      <div class="canvas-wrap"><canvas id="mazeCanvas" width="840" height="600" aria-label="Animated maze showing the AI agent trying to reach the goal"></canvas></div>
+      <div class="maze-legend">
+        <span class="legend-item"><i class="dotkey" style="background:#0f380f"></i> AI agent</span>
+        <span class="legend-item"><i class="dotkey" style="background:#306230"></i> Goal</span>
+        <span class="legend-item"><i class="dotkey" style="background:#306230"></i> Visited trail</span>
+        <span class="legend-item"><i class="dotkey" style="background:#0f380f"></i> Sensor ray</span>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="toggleBtn">Ⅱ Pause learning</button>
+        <button class="btn" id="resetBtn">↺ Reset brain</button>
+        <button class="btn" id="mazeBtn">⤨ New maze</button>
+        <span class="control-spacer"></span>
+        <label class="speed">Training speed <input id="speedSlider" type="range" min="1" max="16" value="4"><strong id="speedValue">4×</strong></label>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="networkTitle">
+      <div class="panel-head"><div><div class="panel-title" id="networkTitle">02 / Neural activity</div><div class="panel-subtitle">Live activations and learned connection weights · arrows show Q-values.</div></div><span class="tag">12 → 16 → 16 → 4</span></div>
+      <div class="canvas-wrap"><canvas id="networkCanvas" width="1120" height="640" aria-label="Neural network graph showing input, hidden and action layers"></canvas></div>
+      <div class="network-stats">
+        <div class="mini-stat"><div class="mini-label">Current action</div><div class="mini-value" id="actionText">INITIALISING</div></div>
+        <div class="mini-stat"><div class="mini-label">Episode reward</div><div class="mini-value" id="rewardText">0.00</div></div>
+        <div class="mini-stat"><div class="mini-label">Replay memory</div><div class="mini-value" id="memoryText">0 / 9,000</div></div>
+      </div>
+      <div class="q-section"><div class="section-heading"><span>Action values <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(estimated future reward)</span></span><span id="greedyLabel" style="color:var(--cyan)">Policy: —</span></div>
+        <div class="bars" id="qBars">
+          <div class="q-row" data-action="0"><div class="q-name">↑ Up</div><div class="q-track"><div class="q-fill"></div></div><div class="q-value">0.000</div></div>
+          <div class="q-row" data-action="1"><div class="q-name">→ Right</div><div class="q-track"><div class="q-fill"></div></div><div class="q-value">0.000</div></div>
+          <div class="q-row" data-action="2"><div class="q-name">↓ Down</div><div class="q-track"><div class="q-fill"></div></div><div class="q-value">0.000</div></div>
+          <div class="q-row" data-action="3"><div class="q-name">← Left</div><div class="q-track"><div class="q-fill"></div></div><div class="q-value">0.000</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="bottom-grid">
+    <div class="info-panel"><h2>How the learning loop works</h2><p>This is a real, self-contained Deep Q-Network implementation in JavaScript. The network predicts the long-term value of four possible moves. It improves from rewards and past transitions instead of being given a route to follow.</p>
+      <div class="pipeline">
+        <div class="pipe-step"><b>01 · Observe</b><span>Position, goal offset, 8 wall rays</span></div><div class="pipe-arrow">→</div>
+        <div class="pipe-step"><b>02 · Decide</b><span>ε-greedy action from Q-values</span></div><div class="pipe-arrow">→</div>
+        <div class="pipe-step"><b>03 · Remember</b><span>Experience replay buffer</span></div><div class="pipe-arrow">→</div>
+        <div class="pipe-step"><b>04 · Learn</b><span>Bellman target + backpropagation</span></div>
+      </div>
+    </div>
+    <div class="info-panel"><h2>What makes this machine learning?</h2><p>A neural network maps 12 inputs through two learned hidden layers to four Q-values. The DQN trains those weights with temporal-difference targets, mini-batches sampled from replay memory, and a periodically updated target network. ε-greedy exploration balances trying moves with using the current policy.</p>
+      <div class="reward-line"><span class="reward-chip"><b>+8</b> reach goal</span><span class="reward-chip"><b>+0.55</b> closer to goal</span><span class="reward-chip"><b>−0.585</b> move farther away</span><span class="reward-chip"><b>−0.22</b> hit wall · <b>−0.035</b> per step</span></div>
+      <p style="margin-top:10px">The graph shows network signals—not literal human-style thoughts. Distance-based reward shaping provides a learning signal, but the agent still selects actions from its trained Q-values and can get stuck or make mistakes.</p>
+    </div>
+  </section>
+  <div class="footer">Runs locally in your browser · No external libraries, servers, API keys, or data uploads required.</div>
+</div>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const mazeCanvas = $('mazeCanvas'), mazeCtx = mazeCanvas.getContext('2d');
+  const netCanvas = $('networkCanvas'), netCtx = netCanvas.getContext('2d');
+  const ACTIONS = [{x:0,y:-1,name:'UP ↑'},{x:1,y:0,name:'RIGHT →'},{x:0,y:1,name:'DOWN ↓'},{x:-1,y:0,name:'LEFT ←'}];
+  const INPUTS = ['x','y','Δx','Δy','↑ ray','↗ ray','→ ray','↘ ray','↓ ray','↙ ray','← ray','↖ ray'];
+  const W = 15, H = 11, INPUT_N = 12, HIDDEN = 16, ACTION_N = 4, GAMMA = 0.94, LR = 0.0013;
+  const REPLAY_MAX = 9000, BATCH = 32;
+  let maze = [], distanceMap = [], start = {x:1,y:1}, goal = {x:W-2,y:H-2};
+  let agent = {x:start.x,y:start.y}, trail = [], episodeSteps = 0, maxEpisodeSteps = 240;
+  let episodes = 0, wins = 0, totalEnvSteps = 0, bestSteps = null, currentReward = 0, rollingLoss = null;
+  let finished = [], replay = [], replayPos = 0, epsilon = 1, running = true, showSensors = true, lastAction = -1;
+  let online, target, lastForward = null, lastInputs = new Array(INPUT_N).fill(0), lastQ = [0,0,0,0], currentAction = -1;
+  let frameCount = 0, lastUi = 0, lastWon = false, episodeVisited = new Set();
+
+  function randn(){ let u=0,v=0; while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  function NeuralNet(sizes){
+    this.sizes = sizes.slice(); this.weights=[];this.biases=[];
+    for(let l=0;l<sizes.length-1;l++){
+      const fanIn=sizes[l],fanOut=sizes[l+1],scale=Math.sqrt(2/fanIn);
+      this.weights.push(Array.from({length:fanIn*fanOut},()=>randn()*scale));
+      this.biases.push(Array.from({length:fanOut},()=>randn()*0.025));
+    }
+  }
+  NeuralNet.prototype.forward=function(input,cache=false){
+    let a=input.slice(), activations=[a], zs=[];
+    for(let l=0;l<this.weights.length;l++){
+      const ni=this.sizes[l],no=this.sizes[l+1],w=this.weights[l],b=this.biases[l],z=new Array(no),next=new Array(no);
+      for(let j=0;j<no;j++){
+        let sum=b[j],offset=j*ni;
+        for(let i=0;i<ni;i++)sum+=w[offset+i]*a[i];
+        z[j]=sum;next[j]=(l===this.weights.length-1)?sum:Math.max(0,sum);
+      }
+      zs.push(z);a=next;activations.push(a);
+    }
+    return cache?{output:a,activations,zs}:a;
+  };
+  NeuralNet.prototype.trainOne=function(state,action,targetValue,lr){
+    const pass=this.forward(state,true),out=pass.output;
+    let err=out[action]-targetValue;
+    // Huber-like clipping prevents unusually large TD errors from destabilising training.
+    let deltaOut=Math.max(-1.5,Math.min(1.5,err));
+    const L=this.weights.length,deltas=new Array(L);
+    deltas[L-1]=new Array(this.sizes[L]).fill(0);deltas[L-1][action]=deltaOut;
+    for(let l=L-2;l>=0;l--){
+      const nextN=this.sizes[l+2],thisN=this.sizes[l+1],nextW=this.weights[l+1],nextDelta=deltas[l+1],z=pass.zs[l],d=new Array(thisN);
+      for(let i=0;i<thisN;i++){
+        let s=0;for(let j=0;j<nextN;j++)s+=nextW[j*thisN+i]*nextDelta[j];
+        d[i]=z[i]>0?s:0;
+      }
+      deltas[l]=d;
+    }
+    for(let l=0;l<L;l++){
+      const prev=pass.activations[l],ni=this.sizes[l],no=this.sizes[l+1],d=deltas[l],w=this.weights[l],b=this.biases[l];
+      for(let j=0;j<no;j++){
+        const dj=Math.max(-2,Math.min(2,d[j]));b[j]-=lr*dj;
+        const offset=j*ni;for(let i=0;i<ni;i++)w[offset+i]-=lr*dj*prev[i];
+      }
+    }
+    return 0.5*err*err;
+  };
+  NeuralNet.prototype.cloneFrom=function(other){this.sizes=other.sizes.slice();this.weights=other.weights.map(a=>a.slice());this.biases=other.biases.map(a=>a.slice());};
+
+  function makeMaze(){
+    maze=Array.from({length:H},()=>Array(W).fill(1));
+    maze[start.y][start.x]=0;
+    const stack=[{x:start.x,y:start.y}];
+    while(stack.length){
+      const cur=stack[stack.length-1];
+      const dirs=[{x:0,y:-2},{x:2,y:0},{x:0,y:2},{x:-2,y:0}].sort(()=>Math.random()-.5);
+      let moved=false;
+      for(const d of dirs){const nx=cur.x+d.x,ny=cur.y+d.y;
+        if(nx>0&&nx<W-1&&ny>0&&ny<H-1&&maze[ny][nx]===1){maze[cur.y+d.y/2][cur.x+d.x/2]=0;maze[ny][nx]=0;stack.push({x:nx,y:ny});moved=true;break;}
+      }
+      if(!moved)stack.pop();
+    }
+    maze[goal.y][goal.x]=0;
+    const q=[{x:goal.x,y:goal.y}],dist=Array.from({length:H},()=>Array(W).fill(Infinity));dist[goal.y][goal.x]=0;
+    for(let i=0;i<q.length;i++){const p=q[i];for(const d of ACTIONS){const nx=p.x+d.x,ny=p.y+d.y;if(nx>=0&&nx<W&&ny>=0&&ny<H&&maze[ny][nx]===0&&dist[ny][nx]===Infinity){dist[ny][nx]=dist[p.y][p.x]+1;q.push({x:nx,y:ny});}}}
+    distanceMap=dist;maxEpisodeSteps=Math.max(100,dist[start.y][start.x]*4+35);
+  }
+  function resetEpisode(){agent={x:start.x,y:start.y};trail=[{x:agent.x,y:agent.y}];episodeSteps=0;currentReward=0;lastWon=false;episodeVisited=new Set([key(agent.x,agent.y)]);lastInputs=observe();lastQ=online.forward(lastInputs);lastForward=online.forward(lastInputs,true);currentAction=-1;}
+  function key(x,y){return `${x},${y}`;}
+  function observe(){
+    const dx=(goal.x-agent.x)/(W-1),dy=(goal.y-agent.y)/(H-1);
+    const result=[agent.x/(W-1),agent.y/(H-1),dx,dy];
+    // Eight grid rays in compass order: N, NE, E, SE, S, SW, W, NW.
+    // This feature is wall proximity: higher values mean the wall is closer.
+    const compass=[[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
+    for(const d of compass){let x=agent.x,y=agent.y,steps=0;while(steps<Math.max(W,H)){x+=d[0];y+=d[1];steps++;if(x<0||x>=W||y<0||y>=H||maze[y][x]===1)break;}
+      result.push(1-Math.min(steps,Math.max(W,H))/Math.max(W,H));
+    }
+    return result;
+  }
+  function chooseAction(q){if(Math.random()<epsilon)return Math.floor(Math.random()*4);let best=0;for(let i=1;i<q.length;i++)if(q[i]>q[best])best=i;return best;}
+  function addReplay(item){if(replay.length<REPLAY_MAX){replay.push(item);}else{replay[replayPos]=item;replayPos=(replayPos+1)%REPLAY_MAX;}}
+  function trainBatch(){
+    if(replay.length<BATCH)return;
+    for(let n=0;n<BATCH;n++){
+      const item=replay[Math.floor(Math.random()*replay.length)];
+      let targetValue=item.r;
+      if(!item.done){const nextQ=target.forward(item.ns);targetValue+=GAMMA*Math.max(...nextQ);}
+      const loss=online.trainOne(item.s,item.a,targetValue,LR);
+      rollingLoss=rollingLoss===null?loss:rollingLoss*0.985+loss*0.015;
+    }
+    if(totalEnvSteps%180===0)target.cloneFrom(online);
+  }
+  function stepAgent(){
+    lastInputs=observe();
+    const pred=online.forward(lastInputs,true);lastForward=pred;lastQ=pred.output.slice();
+    const action=chooseAction(lastQ),move=ACTIONS[action];currentAction=action;lastAction=action;
+    const oldX=agent.x,oldY=agent.y,oldDist=distanceMap[oldY][oldX];
+    const nx=oldX+move.x,ny=oldY+move.y;
+    let reward=-0.035,done=false,won=false;
+    if(nx<0||nx>=W||ny<0||ny>=H||maze[ny][nx]===1){reward-=0.185;}
+    else{
+      agent.x=nx;agent.y=ny;
+      const newDist=distanceMap[ny][nx];
+      reward+=0.55*(oldDist-newDist);
+      const k=key(nx,ny);
+      if(episodeVisited.has(k))reward-=0.045;
+      episodeVisited.add(k);trail.push({x:nx,y:ny});if(trail.length>330)trail.shift();
+      if(nx===goal.x&&ny===goal.y){reward+=8;done=true;won=true;}
+    }
+    episodeSteps++;totalEnvSteps++;currentReward+=reward;
+    if(episodeSteps>=maxEpisodeSteps&&!done){done=true;reward-=1.3;currentReward-=1.3;}
+    const nextState=observe();
+    addReplay({s:lastInputs.slice(),a:action,r:reward,ns:nextState.slice(),done});
+    trainBatch();
+    epsilon=Math.max(0.055,0.055+0.945*Math.exp(-totalEnvSteps/10000));
+    if(done){
+      episodes++;if(won){wins++;if(bestSteps===null||episodeSteps<bestSteps)bestSteps=episodeSteps;}
+      finished.push(won?1:0);if(finished.length>50)finished.shift();
+      resetEpisode();
+    }
+  }
+
+  function drawMaze(){
+    const ctx=mazeCtx,cw=mazeCanvas.width,ch=mazeCanvas.height,cwcell=cw/W,chcell=ch/H;
+    ctx.clearRect(0,0,cw,ch);ctx.fillStyle='#9bbc0f';ctx.fillRect(0,0,cw,ch);
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const px=Math.round(x*cwcell),py=Math.round(y*chcell),rw=Math.ceil(cwcell),rh=Math.ceil(chcell);
+      if(maze[y][x]===1){
+        ctx.fillStyle='#0f380f';ctx.fillRect(px,py,rw,rh);
+        ctx.fillStyle='#306230';ctx.fillRect(px+2,py+2,Math.max(1,rw-4),Math.max(1,rh-4));
+      }else{
+        ctx.fillStyle=((x+y)%2===0)?'#9bbc0f':'#8bac0f';ctx.fillRect(px,py,rw,rh);
+      }
+    }
+    // The visited trail shows the agent's actual experience, not a planned route.
+    if(trail.length>1){ctx.save();ctx.strokeStyle='rgba(15,56,15,.48)';ctx.lineWidth=Math.max(3,cwcell*.20);ctx.lineCap='butt';ctx.lineJoin='miter';ctx.beginPath();trail.forEach((p,i)=>{const x=(p.x+.5)*cwcell,y=(p.y+.5)*chcell;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();ctx.restore();}
+    // Goal marker in blocky, four-tone Game Boy pixels.
+    const gx=Math.round((goal.x+.5)*cwcell),gy=Math.round((goal.y+.5)*chcell),gs=Math.round(Math.min(cwcell,chcell)*.58);
+    ctx.fillStyle='#0f380f';ctx.fillRect(gx-gs/2-2,gy-gs/2-2,gs+4,gs+4);
+    ctx.fillStyle='#9bbc0f';ctx.fillRect(gx-gs/2+2,gy-gs/2+2,gs-4,gs-4);
+    ctx.fillStyle='#306230';ctx.fillRect(gx-Math.max(2,Math.round(gs*.14)),gy-Math.max(2,Math.round(gs*.14)),Math.max(4,Math.round(gs*.28)),Math.max(4,Math.round(gs*.28)));
+    // Start marker
+    ctx.save();ctx.fillStyle='#306230';ctx.font=`bold ${Math.max(10,Math.floor(cwcell*.42))}px "Courier New",monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('S',(start.x+.5)*cwcell,(start.y+.5)*chcell);ctx.restore();
+    // Sensor rays: heading is irrelevant; each ray is tied to a compass sensor.
+    if(showSensors&&agent){const compass=[[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];ctx.save();ctx.strokeStyle='rgba(15,56,15,.52)';ctx.lineWidth=2;ctx.setLineDash([3,5]);for(const d of compass){let x=agent.x,y=agent.y;ctx.beginPath();ctx.moveTo((x+.5)*cwcell,(y+.5)*chcell);for(let s=0;s<Math.max(W,H);s++){x+=d[0];y+=d[1];if(x<0||x>=W||y<0||y>=H||maze[y][x]===1)break;}ctx.lineTo((x+.5)*cwcell,(y+.5)*chcell);ctx.stroke();}ctx.restore();}
+    // Agent marker: crisp pixel sprite instead of a glowing circle.
+    const ax=Math.round((agent.x+.5)*cwcell),ay=Math.round((agent.y+.5)*chcell),size=Math.max(8,Math.round(Math.min(cwcell,chcell)*.46));
+    ctx.fillStyle='#0f380f';ctx.fillRect(ax-size/2-2,ay-size/2-2,size+4,size+4);
+    ctx.fillStyle='#9bbc0f';ctx.fillRect(ax-size/2+2,ay-size/2+2,size-4,size-4);
+    const px=Math.max(2,Math.floor(size*.17));
+    ctx.fillStyle='#0f380f';ctx.fillRect(ax-size*.22,ay-size*.15,px,px);ctx.fillRect(ax+size*.10,ay-size*.15,px,px);ctx.fillRect(ax-size*.13,ay+size*.12,Math.max(3,Math.floor(size*.26)),px);
+  }
+  function drawNetwork(){
+    const ctx=netCtx,scale=netCanvas.width/560;ctx.setTransform(scale,0,0,scale,0,0);ctx.clearRect(0,0,560,320);ctx.fillStyle='#9bbc0f';ctx.fillRect(0,0,560,320);
+    const xs=[58,205,348,472],sizes=[INPUT_N,HIDDEN,HIDDEN,ACTION_N],ys=[];
+    for(let l=0;l<sizes.length;l++){const n=sizes[l],top=(320-(n-1)*((l===0)?22:(l===3?44:15)))/2,spacing=(l===0)?22:(l===3?44:15);ys.push(Array.from({length:n},(_,i)=>top+i*spacing));}
+    ctx.font='9px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.textBaseline='middle';ctx.textAlign='center';
+    // Every visible edge is an actual learned weight in the online network.
+    for(let l=0;l<online.weights.length;l++){
+      const ni=online.sizes[l],no=online.sizes[l+1],weights=online.weights[l],maxW=Math.max(.001,...weights.map(v=>Math.abs(v)));
+      for(let j=0;j<no;j++)for(let i=0;i<ni;i++){
+        const weight=weights[j*ni+i],mag=Math.min(1,Math.abs(weight)/maxW),x1=xs[l],y1=ys[l][i],x2=xs[l+1],y2=ys[l+1][j];
+        ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=weight>=0?`rgba(15,56,15,${.12+mag*.62})`:`rgba(48,98,48,${.18+mag*.58})`;ctx.lineWidth=Math.max(1,Math.round(.5+mag*1.2));ctx.setLineDash(weight<0?[2,2]:[]);ctx.stroke();ctx.setLineDash([]);
+      }
+    }
+    // Input / hidden activations from the latest actual forward pass.
+    const a=lastForward?lastForward.activations:[lastInputs,new Array(HIDDEN).fill(0),new Array(HIDDEN).fill(0),lastQ];
+    for(let l=0;l<sizes.length;l++){
+      for(let i=0;i<sizes[l];i++){
+        const x=xs[l],y=ys[l][i],v=(a[l]&&a[l][i]!==undefined)?a[l][i]:0,activity=Math.min(1,Math.abs(v)/(l===0?1:3));
+        if(l===0){ctx.fillStyle='#306230';ctx.textAlign='left';ctx.fillText(INPUTS[i],3,y);}
+        let fill;
+        if(activity>.72)fill='#0f380f';
+        else if(activity>.32)fill='#306230';
+        else fill='#8bac0f';
+        if(l===3&&v<0)fill='#9bbc0f';
+        const nodeSize=l===0?7:(l===3?13:9);ctx.fillStyle=fill;ctx.fillRect(Math.round(x-nodeSize/2),Math.round(y-nodeSize/2),nodeSize,nodeSize);ctx.strokeStyle=l===3?(i===currentAction?'#0f380f':'#306230'):'#0f380f';ctx.lineWidth=l===3&&i===currentAction?2:1;ctx.strokeRect(Math.round(x-nodeSize/2),Math.round(y-nodeSize/2),nodeSize,nodeSize);
+        if(l===3){ctx.textAlign='left';ctx.fillStyle=i===currentAction?'#0f380f':'#306230';ctx.font='bold 10px "Courier New",monospace';ctx.fillText(['↑','→','↓','←'][i],x+13,y+1);}
+      }
+    }
+    // Layer labels and subtle separator guides.
+    ctx.fillStyle='#0f380f';ctx.font='bold 9px "Courier New",monospace';ctx.textAlign='center';ctx.fillText('INPUTS',58,15);ctx.fillText('HIDDEN 1',205,15);ctx.fillText('HIDDEN 2',348,15);ctx.fillText('Q / ACTION',472,15);
+    ctx.fillStyle='#306230';ctx.font='8px "Courier New",monospace';ctx.fillText('12 signals',58,305);ctx.fillText('ReLU',205,305);ctx.fillText('ReLU',348,305);ctx.fillText('4 values',472,305);
+    ctx.setTransform(1,0,0,1,0,0);
+  }
+  function updateUI(){
+    $('episodes').textContent=episodes.toLocaleString();
+    $('successRate').textContent=finished.length?`${Math.round(finished.reduce((a,b)=>a+b,0)/finished.length*100)}%`:'—';
+    $('bestSteps').textContent=bestSteps===null?'—':String(bestSteps);
+    $('epsilon').textContent=`${Math.round(epsilon*100)}%`;
+    $('loss').textContent=rollingLoss===null?'—':rollingLoss.toFixed(4);
+    $('runTag').textContent=running?'TRAINING LIVE':'PAUSED';$('runTag').style.color=running?'var(--cyan)':'var(--amber)';$('runTag').style.borderColor=running?'#306230':'#0f380f';$('runTag').style.background=running?'#9bbc0f':'#8bac0f';
+    $('toggleBtn').textContent=running?'Ⅱ Pause learning':'▶ Resume learning';
+    $('actionText').textContent=currentAction<0?'INITIALISING':ACTIONS[currentAction].name;
+    $('rewardText').textContent=currentReward.toFixed(2);$('memoryText').textContent=`${replay.length.toLocaleString()} / ${REPLAY_MAX.toLocaleString()}`;
+    let greedy=0;for(let i=1;i<lastQ.length;i++)if(lastQ[i]>lastQ[greedy])greedy=i;$('greedyLabel').textContent=`Policy: ${ACTIONS[greedy].name}`;
+    const min=Math.min(...lastQ),max=Math.max(...lastQ),range=Math.max(.0001,max-min);
+    document.querySelectorAll('.q-row').forEach(row=>{const i=+row.dataset.action,v=lastQ[i]||0;row.querySelector('.q-name').classList.toggle('active',i===greedy);row.querySelector('.q-fill').style.width=`${8+((v-min)/range)*92}%`;row.querySelector('.q-value').textContent=v.toFixed(3);row.querySelector('.q-fill').style.opacity=i===greedy?'1':'.54';});
+  }
+  function resetBrain(keepMaze=true){
+    online=new NeuralNet([INPUT_N,HIDDEN,HIDDEN,ACTION_N]);target=new NeuralNet([INPUT_N,HIDDEN,HIDDEN,ACTION_N]);target.cloneFrom(online);
+    replay=[];replayPos=0;epsilon=1;episodes=0;wins=0;totalEnvSteps=0;bestSteps=null;currentReward=0;rollingLoss=null;finished=[];trail=[];episodeSteps=0;lastWon=false;currentAction=-1;lastQ=[0,0,0,0];lastForward=null;resetEpisode();
+    if(!keepMaze)makeMaze();
+  }
+  $('toggleBtn').addEventListener('click',()=>{running=!running;updateUI();});
+  $('resetBtn').addEventListener('click',()=>{resetBrain(true);updateUI();drawMaze();drawNetwork();});
+  $('mazeBtn').addEventListener('click',()=>{makeMaze();resetBrain(true);updateUI();drawMaze();drawNetwork();});
+  $('speedSlider').addEventListener('input',e=>{$('speedValue').textContent=`${e.target.value}×`;});
+  // Keyboard accessibility: space toggles training; S toggles sensor rays (ignored while typing).
+  window.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;if(e.code==='Space'){e.preventDefault();running=!running;updateUI();}if(e.key.toLowerCase()==='s'){showSensors=!showSensors;drawMaze();}});
+  function animate(now){
+    if(running){const n=Number($('speedSlider').value);for(let i=0;i<n;i++)stepAgent();}
+    drawMaze();
+    if(frameCount%3===0)drawNetwork();
+    if(now-lastUi>140){updateUI();lastUi=now;}
+    frameCount++;requestAnimationFrame(animate);
+  }
+  makeMaze();online=new NeuralNet([INPUT_N,HIDDEN,HIDDEN,ACTION_N]);target=new NeuralNet([INPUT_N,HIDDEN,HIDDEN,ACTION_N]);target.cloneFrom(online);resetEpisode();requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
